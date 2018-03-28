@@ -1,28 +1,29 @@
 ############ PHYS 777: MACHINE LEARNING FOR MANY-BODY PHYSICS, TUTORIAL 2 ############
 ### Code by Lauren Hayward Sierens and Juan Carrasquilla
 ###
-###
+### This code builds a simple data set of spirals with K branches and then implements
+### and trains a simple feedforward neural network to classify its branches.
 ######################################################################################
 
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
-# figure setup
-plt.rcParams['image.interpolation'] = 'nearest'
+np.random.seed(0)
 
 ### Activation function
 def sigmoid(x):
   return 1. / (1. + np.exp(-x))
 
-np.random.seed(0)
+############################################################################
+####################### CREATE AND PLOT THE DATA SET #######################
+############################################################################
 
-# this is a little data set of spirals with K branches
+D = 2  # dimensionality of the vectors to be learned
 N = 50 # number of points per branch
-D = 2 # dimensionality of the vectors to be learned
-K = 3 # number of branches
-X = np.zeros((N*K,D)) # matrix containing the dataset
-y = np.zeros(N*K, dtype='uint8') # labels
+K = 3  # number of branches
+x_data = np.zeros((N*K,D)) # matrix containing the dataset
+y_data = np.zeros(N*K, dtype='uint8') # labels
 
 mag_noise = 0.3 #0.2
 dTheta    = 5 #4
@@ -31,13 +32,12 @@ for j in range(K):
   ix = range(N*j,N*(j+1))
   r = np.linspace(0.01,1,N) # radius
   t = np.linspace(j*(2*np.pi)/K,j*(2*np.pi)/K + dTheta,N) + np.random.randn(N)*mag_noise # theta
-  X[ix] = np.c_[r*np.cos(t), r*np.sin(t)]
-  y[ix] = j
+  x_data[ix] = np.c_[r*np.cos(t), r*np.sin(t)]
+  y_data[ix] = j
 
-print y
-# plotting dataset
+### Plot the data set:
 fig = plt.figure(figsize=(6,6))
-plt.scatter(X[:, 0], X[:, 1], c=y, s=40)#, cmap=plt.cm.Spectral)
+plt.scatter(x_data[:, 0], x_data[:, 1], c=y_data, s=40)#, cmap=plt.cm.Spectral)
 plt.xlim([-1,1])
 plt.ylim([-1,1])
 plt.xlabel('x')
@@ -74,19 +74,19 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
     # gradient descent loop
-    num_examples = X.shape[0]
-    for i in range(20000):
+    num_examples = x_data.shape[0]
+    for i in range(10000):
         #
-        sess.run(train_step, feed_dict={x: X,yl:y})
+        sess.run(train_step, feed_dict={x: x_data,yl:y_data})
         if i % 1000 == 0:
-            loss=sess.run(cross_entropy,feed_dict={x: X,yl:y})
+            loss=sess.run(cross_entropy,feed_dict={x:X, yl:y_data})
             print "iteration %d: loss %f" % (i, loss)
 
     #hidden_layer = np.maximum(0, np.dot(X, W) + b)
     #scores = np.dot(hidden_layer, W2) + b2
-    scores_=sess.run(a2,feed_dict={x:X,yl:y})
+    scores_=sess.run(a2,feed_dict={x:x_data, yl:y_data})
     predicted_class = np.argmax(scores_, axis=1)
-    print 'training accuracy: %.2f' % (np.mean(predicted_class == y))
+    print 'training accuracy: %.2f' % (np.mean(predicted_class == y_data))
     
     # getting the trained weights for plotting the classifier
     W1=sess.run(W1)
@@ -96,18 +96,18 @@ with tf.Session() as sess:
     
 
 # plot the resulting classifier
-h = 0.02
-x_min, x_max = X[:, 0].min() - 0.25, X[:, 0].max() + 0.25
-y_min, y_max = X[:, 1].min() - 0.25, X[:, 1].max() + 0.25
-xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                     np.arange(y_min, y_max, h))
+d_xy = 0.02
+x_min, x_max = x_data[:, 0].min() - 0.25, x_data[:, 0].max() + 0.25
+y_min, y_max = x_data[:, 1].min() - 0.25, x_data[:, 1].max() + 0.25
+xx, yy = np.meshgrid(np.arange(x_min, x_max, d_xy),
+                     np.arange(y_min, y_max, d_xy))
 Z = np.dot(sigmoid( np.dot(np.c_[xx.ravel(), yy.ravel()], W1) + b1), W2) + b2
 Z = np.argmax(Z, axis=1)
 Z = Z.reshape(xx.shape)
 
 fig = plt.figure(figsize=(6,6))
 plt.contourf(xx, yy, Z, K, alpha=0.8)
-plt.scatter(X[:, 0], X[:, 1], c=y, s=40)
+plt.scatter(x_data[:, 0], x_data[:, 1], c=y_data, s=40)
 plt.xlim(xx.min(), xx.max())
 plt.ylim(yy.min(), yy.max())
 plt.xlabel('x')
