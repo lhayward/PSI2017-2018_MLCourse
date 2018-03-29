@@ -51,12 +51,13 @@ fig.savefig('spiral_data.pdf')
 ##################### DEFINE THE NETWORK ARCHITECTURE ######################
 ############################################################################
 
-# Computational graph for tensorflow
-x = tf.placeholder(tf.float32, [None, D])
-yl = tf.placeholder(tf.int32,[None])
-
 n_L = [D,10,K] #size of each layer
 num_layers = len(n_L)
+
+# Computational graph for tensorflow
+x = tf.placeholder(tf.float32, [None, D]) #input
+y = tf.placeholder(tf.int32,[None])       #labels
+
 W = [ tf.Variable( tf.random_normal([n_L[i], n_L[i+1]], mean=0.0, stddev=0.01, dtype=tf.float32) ) for i in range(num_layers-1) ]
 b = [tf.Variable(tf.zeros([n_L[i]])) for i in range(1,num_layers)]
                 
@@ -65,9 +66,9 @@ a[0] =  tf.nn.sigmoid( tf.matmul(x, W[0]) + b[0] )
 for i in range(1,num_layers-1):
   a[i] = tf.nn.sigmoid( tf.matmul(a[i-1], W[i]) + b[i] )
 
-#cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=yl,logits=z2)) # tf shortcut
+#cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y,logits=z2)) # tf shortcut
 eps=0.0000000001
-cross_entropy = tf.reduce_mean(-tf.reduce_sum( tf.one_hot(yl,depth=K) * tf.log(a[-1]+eps) +  (1.0-tf.one_hot(yl,depth=K) )*tf.log(1.0-a[-1] +eps) , reduction_indices=[1])) # a little more explicit
+cross_entropy = tf.reduce_mean(-tf.reduce_sum( tf.one_hot(y,depth=K) * tf.log(a[-1]+eps) +  (1.0-tf.one_hot(y,depth=K) )*tf.log(1.0-a[-1] +eps) , reduction_indices=[1])) # a little more explicit
 regularizer = tf.nn.l2_loss(W[0])
 for i in range(1,num_layers-1):
     regularizer = regularizer + tf.nn.l2_loss(W[i])
@@ -92,13 +93,13 @@ with tf.Session() as sess:
         for j in range(0, N_train, minibatch_size):
             x_batch = x_shuffle[j:j+minibatch_size,:]
             y_batch = y_shuffle[j:j+minibatch_size]
-            sess.run(train_step, feed_dict={x: x_batch,yl:y_batch})
+            sess.run(train_step, feed_dict={x: x_batch,y:y_batch})
         
         if i % 1000 == 0:
-            loss=sess.run(loss_func,feed_dict={x:x_train, yl:y_train})
+            loss=sess.run(loss_func,feed_dict={x:x_train, y:y_train})
             print "iteration %d: loss %f" % (i, loss)
 
-    scores_=sess.run(a[-1],feed_dict={x:x_train, yl:y_train})
+    scores_=sess.run(a[-1],feed_dict={x:x_train, y:y_train})
     predicted_class = np.argmax(scores_, axis=1)
     print 'training accuracy: %.2f' % (np.mean(predicted_class == y_train))
 
