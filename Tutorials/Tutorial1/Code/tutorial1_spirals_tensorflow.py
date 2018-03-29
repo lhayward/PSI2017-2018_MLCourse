@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
-np.random.seed(0)
-tf.set_random_seed(0)
+np.random.seed(123)
+tf.set_random_seed(123)
 
 ### Activation function
 def sigmoid(x):
@@ -22,12 +22,14 @@ def sigmoid(x):
 
 D = 2  # dimensionality of the vectors to be learned
 N = 50 # number of points per branch
-K = 4  # number of branches
-x_train = np.zeros((N*K,D)) # matrix containing the dataset
-y_train = np.zeros(N*K, dtype='uint8') # labels
+K = 3  # number of branches
 
-mag_noise = 0.02 #0.2
-dTheta    = 4 #4
+N_train = N*K
+x_train = np.zeros((N_train,D)) # matrix containing the dataset
+y_train = np.zeros(N_train, dtype='uint8') # labels
+
+mag_noise = 0.4 #0.2
+dTheta    = 3 #4
 # data generation
 for j in range(K):
   ix = range(N*j,N*(j+1))
@@ -66,21 +68,34 @@ for i in range(1,num_layers-1):
 #cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=yl,logits=z2)) # tf shortcut
 eps=0.0000000001
 cross_entropy = tf.reduce_mean(-tf.reduce_sum( tf.one_hot(yl,depth=K) * tf.log(a[-1]+eps) +  (1.0-tf.one_hot(yl,depth=K) )*tf.log(1.0-a[-1] +eps) , reduction_indices=[1])) # a little more explicit
+regularizer = tf.nn.l2_loss(W[0])
+for i in range(1,num_layers-1):
+    regularizer = regularizer + tf.nn.l2_loss(W[i])
+loss_func = tf.reduce_mean(cross_entropy + 0.001 * regularizer)
 
 step_size = 1.0 #hyperparameter
-train_step = tf.train.GradientDescentOptimizer(step_size).minimize(cross_entropy)
+train_step = tf.train.GradientDescentOptimizer(step_size).minimize(loss_func)
 
-N_epochs = 5000
+N_epochs = 10000
+minibatch_size = 200 #N_train needs to be divisible by batch_size
+permut = np.arange(N_train)
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
     # gradient descent loop
     num_examples = x_train.shape[0]
     for i in range(N_epochs):
-        #
-        sess.run(train_step, feed_dict={x: x_train,yl:y_train})
+        np.random.shuffle(permut)
+        x_shuffle  = x_train[permut,:]
+        y_shuffle = y_train[permut]
+        
+        for j in range(0, N_train, minibatch_size):
+            x_batch = x_shuffle[j:j+minibatch_size,:]
+            y_batch = y_shuffle[j:j+minibatch_size]
+            sess.run(train_step, feed_dict={x: x_batch,yl:y_batch})
+        
         if i % 1000 == 0:
-            loss=sess.run(cross_entropy,feed_dict={x:x_train, yl:y_train})
+            loss=sess.run(loss_func,feed_dict={x:x_train, yl:y_train})
             print "iteration %d: loss %f" % (i, loss)
 
     scores_=sess.run(a[-1],feed_dict={x:x_train, yl:y_train})
@@ -102,10 +117,10 @@ fig = plt.figure(figsize=(6,6))
 plt.contourf(xx, yy, Z, K, alpha=0.8)
 plt.scatter(x_train[:, 0], x_train[:, 1], c=y_train, s=40)
 
-for j in range(K):
-    r_noNoise = np.linspace(0.01,1, 100 ) # radius
-    t_noNoise = np.linspace(j*(2*np.pi)/K - dTheta/2.0,j*(2*np.pi)/K + dTheta/2.0, 100) # theta
-    plt.plot( r_noNoise*np.cos(t_noNoise), r_noNoise*np.sin(t_noNoise), 'k-' )
+#for j in range(K):
+#    r_noNoise = np.linspace(0.01,1, 100 ) # radius
+#    t_noNoise = np.linspace(j*(2*np.pi)/K - dTheta/2.0,j*(2*np.pi)/K + dTheta/2.0, 100) # theta
+#    plt.plot( r_noNoise*np.cos(t_noNoise), r_noNoise*np.sin(t_noNoise), 'k-' )
 
 plt.xlim(xx.min(), xx.max())
 plt.ylim(yy.min(), yy.max())
