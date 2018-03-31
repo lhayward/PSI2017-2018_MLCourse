@@ -9,8 +9,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
-np.random.seed(123)
-tf.set_random_seed(123)
+seed=1
+np.random.seed(seed)
+tf.set_random_seed(seed)
 
 ### Activation function
 def sigmoid(x):
@@ -67,7 +68,8 @@ for i in range(1,num_layers-1):
   a[i] = tf.nn.sigmoid( tf.matmul(a[i-1], W[i]) + b[i] )
 
 #cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y,logits=z2)) # tf shortcut
-eps=0.0000000001
+#eps=0.0000000001
+eps=0
 cross_entropy = tf.reduce_mean(-tf.reduce_sum( tf.one_hot(y,depth=K) * tf.log(a[-1]+eps) +  (1.0-tf.one_hot(y,depth=K) )*tf.log(1.0-a[-1] +eps) , reduction_indices=[1])) # a little more explicit
 regularizer = tf.nn.l2_loss(W[0])
 for i in range(1,num_layers-1):
@@ -80,39 +82,40 @@ train_step = tf.train.GradientDescentOptimizer(step_size).minimize(loss_func)
 N_epochs = 10000
 minibatch_size = 200 #N_train needs to be divisible by batch_size
 permut = np.arange(N_train)
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
 
-    # gradient descent loop
-    num_examples = x_train.shape[0]
-    for i in range(N_epochs):
-        np.random.shuffle(permut)
-        x_shuffle  = x_train[permut,:]
-        y_shuffle = y_train[permut]
-        
-        for j in range(0, N_train, minibatch_size):
-            x_batch = x_shuffle[j:j+minibatch_size,:]
-            y_batch = y_shuffle[j:j+minibatch_size]
-            sess.run(train_step, feed_dict={x: x_batch,y:y_batch})
-        
-        if i % 1000 == 0:
-            loss=sess.run(loss_func,feed_dict={x:x_train, y:y_train})
-            print "iteration %d: loss %f" % (i, loss)
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
 
-    scores_=sess.run(a[-1],feed_dict={x:x_train, y:y_train})
-    predicted_class = np.argmax(scores_, axis=1)
-    print 'training accuracy: %.2f' % (np.mean(predicted_class == y_train))
+# gradient descent loop
+num_examples = x_train.shape[0]
+for i in range(N_epochs):
+    np.random.shuffle(permut)
+    x_shuffle  = x_train[permut,:]
+    y_shuffle = y_train[permut]
+    
+    for j in range(0, N_train, minibatch_size):
+        x_batch = x_shuffle[j:j+minibatch_size,:]
+        y_batch = y_shuffle[j:j+minibatch_size]
+        sess.run(train_step, feed_dict={x: x_batch,y:y_batch})
+    
+    if i % 1000 == 0:
+        loss=sess.run(loss_func,feed_dict={x:x_train, y:y_train})
+        print "iteration %d: loss %f" % (i, loss)
 
-    # plot the resulting classifier
-    padding_xy = 0.1
-    spacing_xy = 0.02
-    x_min, x_max = x_train[:, 0].min() - padding_xy, x_train[:, 0].max() + padding_xy
-    y_min, y_max = x_train[:, 1].min() - padding_xy, x_train[:, 1].max() + padding_xy
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, spacing_xy),
-                         np.arange(y_min, y_max, spacing_xy))
-    Z = sess.run(a[-1],feed_dict={x:np.c_[xx.ravel(), yy.ravel()]})
-    Z = np.argmax(Z, axis=1)
-    Z = Z.reshape(xx.shape)
+scores_=sess.run(a[-1],feed_dict={x:x_train, y:y_train})
+predicted_class = np.argmax(scores_, axis=1)
+print 'training accuracy: %.2f' % (np.mean(predicted_class == y_train))
+
+# plot the resulting classifier
+padding_xy = 0.1
+spacing_xy = 0.02
+x_min, x_max = x_train[:, 0].min() - padding_xy, x_train[:, 0].max() + padding_xy
+y_min, y_max = x_train[:, 1].min() - padding_xy, x_train[:, 1].max() + padding_xy
+xx, yy = np.meshgrid(np.arange(x_min, x_max, spacing_xy),
+                     np.arange(y_min, y_max, spacing_xy))
+Z = sess.run(a[-1],feed_dict={x:np.c_[xx.ravel(), yy.ravel()]})
+Z = np.argmax(Z, axis=1)
+Z = Z.reshape(xx.shape)
 
 fig = plt.figure(figsize=(6,6))
 plt.contourf(xx, yy, Z, K, alpha=0.8)
