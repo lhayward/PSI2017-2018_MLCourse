@@ -13,6 +13,8 @@ seed=1
 np.random.seed(seed)
 tf.set_random_seed(seed)
 
+plt.ion() #turn on interactive mode (for animations)
+
 ### Activation function
 def sigmoid(x):
   return 1. / (1. + np.exp(-x))
@@ -40,7 +42,7 @@ for j in range(K):
   y_train[ix] = j
 
 ### Plot the data set:
-fig = plt.figure(figsize=(6,6))
+fig = plt.figure(1, figsize=(6,6))
 plt.scatter(x_train[:, 0], x_train[:, 1], c=y_train, s=40)#, cmap=plt.cm.Spectral)
 plt.xlim([-1,1])
 plt.ylim([-1,1])
@@ -86,9 +88,29 @@ permut = np.arange(N_train)
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 
+#For plotting:
+def updatePlot():
+    padding_xy = 0.1
+    spacing_xy = 0.02
+    x_min, x_max = x_train[:, 0].min() - padding_xy, x_train[:, 0].max() + padding_xy
+    y_min, y_max = x_train[:, 1].min() - padding_xy, x_train[:, 1].max() + padding_xy
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, spacing_xy),
+                         np.arange(y_min, y_max, spacing_xy))
+    
+    Z = sess.run(a[-1],feed_dict={x:np.c_[xx.ravel(), yy.ravel()]})
+    Z = np.argmax(Z, axis=1)
+    Z = Z.reshape(xx.shape)
+    plt.contourf(xx, yy, Z, K, alpha=0.8)
+    plt.scatter(x_train[:, 0], x_train[:, 1], c=y_train, s=40)
+    
+    plt.xlim(xx.min(), xx.max())
+    plt.ylim(yy.min(), yy.max())
+    plt.xlabel('x')
+    plt.ylabel('y')
+
 # gradient descent loop
 num_examples = x_train.shape[0]
-for i in range(N_epochs):
+for ep in range(N_epochs):
     np.random.shuffle(permut)
     x_shuffle  = x_train[permut,:]
     y_shuffle = y_train[permut]
@@ -98,38 +120,25 @@ for i in range(N_epochs):
         y_batch = y_shuffle[j:j+minibatch_size]
         sess.run(train_step, feed_dict={x: x_batch,y:y_batch})
     
-    if i % 1000 == 0:
+    if ep % 1000 == 0:
         loss=sess.run(loss_func,feed_dict={x:x_train, y:y_train})
-        print "iteration %d: loss %f" % (i, loss)
+        print "iteration %d: loss %f" % (ep, loss)
+        
+        #Update the plot of the resulting classifier:
+        plt.figure(2,figsize=(6,6))
+        plt.clf()
+        updatePlot()
+        plt.pause(0.01)
 
 scores_=sess.run(a[-1],feed_dict={x:x_train, y:y_train})
 predicted_class = np.argmax(scores_, axis=1)
 print 'training accuracy: %.2f' % (np.mean(predicted_class == y_train))
-
-# plot the resulting classifier
-padding_xy = 0.1
-spacing_xy = 0.02
-x_min, x_max = x_train[:, 0].min() - padding_xy, x_train[:, 0].max() + padding_xy
-y_min, y_max = x_train[:, 1].min() - padding_xy, x_train[:, 1].max() + padding_xy
-xx, yy = np.meshgrid(np.arange(x_min, x_max, spacing_xy),
-                     np.arange(y_min, y_max, spacing_xy))
-Z = sess.run(a[-1],feed_dict={x:np.c_[xx.ravel(), yy.ravel()]})
-Z = np.argmax(Z, axis=1)
-Z = Z.reshape(xx.shape)
-
-fig = plt.figure(figsize=(6,6))
-plt.contourf(xx, yy, Z, K, alpha=0.8)
-plt.scatter(x_train[:, 0], x_train[:, 1], c=y_train, s=40)
 
 #for j in range(K):
 #    r_noNoise = np.linspace(0.01,1, 100 ) # radius
 #    t_noNoise = np.linspace(j*(2*np.pi)/K - dTheta/2.0,j*(2*np.pi)/K + dTheta/2.0, 100) # theta
 #    plt.plot( r_noNoise*np.cos(t_noNoise), r_noNoise*np.sin(t_noNoise), 'k-' )
 
-plt.xlim(xx.min(), xx.max())
-plt.ylim(yy.min(), yy.max())
-plt.xlabel('x')
-plt.ylabel('y')
 fig.savefig('spiral_net_results.pdf')
 
 plt.show()
