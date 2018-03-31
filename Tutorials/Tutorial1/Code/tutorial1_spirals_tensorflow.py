@@ -31,8 +31,8 @@ N_train = N*K
 x_train = np.zeros((N_train,D)) # matrix containing the dataset
 y_train = np.zeros(N_train, dtype='uint8') # labels
 
-mag_noise = 0.4 #0.2
-dTheta    = 3 #4
+mag_noise = 0.3 #0.2
+dTheta    = 4 #4
 # data generation
 for j in range(K):
   ix = range(N*j,N*(j+1))
@@ -70,26 +70,29 @@ for i in range(1,num_layers-1):
   a[i] = tf.nn.sigmoid( tf.matmul(a[i-1], W[i]) + b[i] )
 
 #cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y,logits=z2)) # tf shortcut
-#eps=0.0000000001
-eps=0
+eps=0.0000000001
 cross_entropy = tf.reduce_mean(-tf.reduce_sum( tf.one_hot(y,depth=K) * tf.log(a[-1]+eps) +  (1.0-tf.one_hot(y,depth=K) )*tf.log(1.0-a[-1] +eps) , reduction_indices=[1])) # a little more explicit
 regularizer = tf.nn.l2_loss(W[0])
 for i in range(1,num_layers-1):
     regularizer = regularizer + tf.nn.l2_loss(W[i])
-loss_func = tf.reduce_mean(cross_entropy + 0.001 * regularizer)
+loss_func = tf.reduce_mean(cross_entropy + 0.0 * regularizer)
 
 step_size = 1.0 #hyperparameter
 train_step = tf.train.GradientDescentOptimizer(step_size).minimize(loss_func)
 
-N_epochs = 10000
+N_epochs = 20000
 minibatch_size = 200 #N_train needs to be divisible by batch_size
 permut = np.arange(N_train)
 
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 
+ep_list       = []
+loss_training = []
+acc_training  = []
+
 #For plotting:
-def updatePlot():
+def updatePlot(epoch):
     padding_xy = 0.1
     spacing_xy = 0.02
     x_min, x_max = x_train[:, 0].min() - padding_xy, x_train[:, 0].max() + padding_xy
@@ -100,13 +103,38 @@ def updatePlot():
     Z = sess.run(a[-1],feed_dict={x:np.c_[xx.ravel(), yy.ravel()]})
     Z = np.argmax(Z, axis=1)
     Z = Z.reshape(xx.shape)
+    
+    loss = sess.run(loss_func,feed_dict={x:x_train, y:y_train})
+    print "iteration %d: loss %f" % (ep, loss)
+    
+    scores_=sess.run(a[-1],feed_dict={x:x_train, y:y_train})
+    predicted_class = np.argmax(scores_, axis=1)
+    acc = np.mean(predicted_class == y_train)
+    
+    ep_list.append(epoch)
+    loss_training.append(loss)
+    acc_training.append(acc)
+    
+    #Plot the classifier:
+    plt.subplot(121)
     plt.contourf(xx, yy, Z, K, alpha=0.8)
     plt.scatter(x_train[:, 0], x_train[:, 1], c=y_train, s=40)
-    
     plt.xlim(xx.min(), xx.max())
     plt.ylim(yy.min(), yy.max())
     plt.xlabel('x')
     plt.ylabel('y')
+
+    #Plot the training loss:
+    plt.subplot(222)
+    plt.plot(ep_list,loss_training,'o-')
+    plt.xlabel('Epoch')
+    plt.ylabel('Training loss')
+
+    #Plot the training accuracy:
+    plt.subplot(224)
+    plt.plot(ep_list,acc_training,'o-')
+    plt.xlabel('Epoch')
+    plt.ylabel('Training accuracy')
 
 # gradient descent loop
 num_examples = x_train.shape[0]
@@ -121,14 +149,11 @@ for ep in range(N_epochs):
         sess.run(train_step, feed_dict={x: x_batch,y:y_batch})
     
     if ep % 1000 == 0:
-        loss=sess.run(loss_func,feed_dict={x:x_train, y:y_train})
-        print "iteration %d: loss %f" % (ep, loss)
-        
         #Update the plot of the resulting classifier:
-        plt.figure(2,figsize=(6,6))
+        plt.figure(2,figsize=(8,6))
         plt.clf()
-        updatePlot()
-        plt.pause(0.01)
+        updatePlot(ep)
+        plt.pause(0.1)
 
 scores_=sess.run(a[-1],feed_dict={x:x_train, y:y_train})
 predicted_class = np.argmax(scores_, axis=1)
@@ -139,6 +164,6 @@ print 'training accuracy: %.2f' % (np.mean(predicted_class == y_train))
 #    t_noNoise = np.linspace(j*(2*np.pi)/K - dTheta/2.0,j*(2*np.pi)/K + dTheta/2.0, 100) # theta
 #    plt.plot( r_noNoise*np.cos(t_noNoise), r_noNoise*np.sin(t_noNoise), 'k-' )
 
-fig.savefig('spiral_net_results.pdf')
+plt.savefig('spiral_net_results.pdf')
 
 plt.show()
