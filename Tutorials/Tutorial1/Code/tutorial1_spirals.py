@@ -1,4 +1,4 @@
-############ PHYS 777: MACHINE LEARNING FOR MANY-BODY PHYSICS, TUTORIAL 2 ############
+############ PHYS 777: MACHINE LEARNING FOR MANY-BODY PHYSICS, TUTORIAL 1 ############
 ### Code by Lauren Hayward Sierens and Juan Carrasquilla
 ###
 ### This code builds a simple data set of spirals with K branches and then implements
