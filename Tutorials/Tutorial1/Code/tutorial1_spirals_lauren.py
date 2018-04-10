@@ -80,7 +80,7 @@ loss_func = tf.reduce_mean(cross_entropy + 0.0 * regularizer)
 step_size = 1.0 #hyperparameter
 train_step = tf.train.GradientDescentOptimizer(step_size).minimize(loss_func)
 
-N_epochs = 20000
+N_epochs = 30000
 minibatch_size = 200 #N_train needs to be divisible by batch_size
 permut = np.arange(N_train)
 
@@ -105,7 +105,9 @@ def updatePlot(epoch):
     Z = Z.reshape(xx.shape)
     
     loss = sess.run(loss_func,feed_dict={x:x_train, y:y_train})
+    ce   = sess.run(cross_entropy,feed_dict={x:x_train, y:y_train})
     print "iteration %d: loss %f" % (ep, loss)
+    print "              ce   %f" % (ce)
     
     scores_=sess.run(a[-1],feed_dict={x:x_train, y:y_train})
     predicted_class = np.argmax(scores_, axis=1)
