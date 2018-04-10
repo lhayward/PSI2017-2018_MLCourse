@@ -105,12 +105,11 @@ cost_func = cross_entropy
 learning_rate  = 1.0 # hyperparameter
 train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost_func)
 
+N_epochs = 20000 # number of times to run gradient descent
+
 ##############################################################################
 ################################## TRAINING ##################################
 ##############################################################################
-
-N_epochs = 20000 # number of times to run gradient descent
-
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 

@@ -70,25 +70,6 @@ a1 = tf.nn.sigmoid( z1 )
 ### Network output: ###
 aL = a1
 
-############ SOLUTION TO PART C ############
-#nH=4
-#### Layer 1: ###
-#W1 = tf.Variable( tf.random_normal([2, nH], mean=0.0, stddev=0.01, dtype=tf.float32) )
-#b1 = tf.Variable( tf.zeros([nH]) )
-#z1 = tf.matmul(x, W1) + b1
-#a1 = tf.nn.sigmoid( z1 )
-##a1 = tf.nn.relu( z1 ) ### SOLUTION TO PART D ###
-#
-#### Layer 2: ###
-#W2 = tf.Variable( tf.random_normal([nH, K], mean=0.0, stddev=0.01, dtype=tf.float32) )
-#b2 = tf.Variable( tf.zeros([K]) )
-#z2 = tf.matmul(a1, W2) + b2
-#a2 = tf.nn.sigmoid( z2 )
-#
-#### Network output: ###
-#aL = a2
-############################################
-
 ### Cost function: ###
 ### (measures how far off our model is from the labels) ###
 y_onehot = tf.one_hot(y,depth=K) # labels are converted to one-hot representation
@@ -96,21 +77,15 @@ eps=0.0000000001 # to prevent the logs from diverging
 cross_entropy = tf.reduce_mean(-tf.reduce_sum( y_onehot * tf.log(aL+eps) +  (1.0-y_onehot )*tf.log(1.0-aL +eps) , reduction_indices=[1]))
 cost_func = cross_entropy
 
-############ SOLUTION TO PART E ############
-#mse = tf.reduce_mean( tf.reduce_sum( tf.square(y_onehot - aL) ) )
-#cost_func = mse
-############################################
-
 ### Use backpropagation to minimize the cost function using the gradient descent algorithm: ###
 learning_rate  = 1.0 # hyperparameter
 train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost_func)
 
+N_epochs = 20000 # number of times to run gradient descent
+
 ##############################################################################
 ################################## TRAINING ##################################
 ##############################################################################
-
-N_epochs = 20000 # number of times to run gradient descent
-
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 
