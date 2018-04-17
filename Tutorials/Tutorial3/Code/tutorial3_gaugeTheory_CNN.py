@@ -11,10 +11,15 @@ num_labels  = 2     # Number of labels (T=0 and T=infinity here)
 num_sublattices = 2 # Number of sublattices for the gauge theory lattice
 
 ### Hyperparameters: ###
-patch_size  = 2     # Size of the filters
-num_filters = 64    # Number of output channels in the convolutional layer
-nH = 64             # Number of neurons in the fully-connected layer
-dropout_prob = 0.5  # Probability of keeping neurons in the dropout layer
+patch_size  = 2        # Size of the filters
+num_filters = 64       # Number of output channels in the convolutional layer
+nH = 64                # Number of neurons in the fully-connected layer
+dropout_prob = 0.5     # Probability of keeping neurons in the dropout layer
+learning_rate = 0.0001 # Learning rate for training algorithm
+minibatch_size = 200   # Mini-batch size (N_train needs to be divisible by minibatch_size)
+
+### Other parameters: ###
+N_epochs = 20
 
 ############################################################################
 ########################### READ IN THE DATA SET ###########################
@@ -31,12 +36,6 @@ L            = int( np.sqrt(N_spins/2) )
 x_test_orig = np.loadtxt( 'x_test.txt', dtype='uint8' )
 y_test      = np.loadtxt( 'y_test.txt', dtype='uint8' )
 N_test      = x_test_orig.shape[0]
-
-#N_train=2
-#L = 4
-#xxx = np.zeros((N_train,2*L*L))
-#for i in range(N_train):
-#    xxx[i] = np.arange(2*L*L)
 
 ### Enlarge the datapoints based on the patch size (because of periodic boundary conditions): ###
 L_enlarged = L+patch_size-1
@@ -92,3 +91,41 @@ a3 = tf.nn.softmax( z3 )
 
 ### Network output: ###
 aL = a3
+
+### Cost function: ###
+y_onehot = tf.one_hot(y,depth=num_labels) # labels are converted to one-hot representation
+eps=0.0000000001 # to prevent the logs from diverging
+cross_entropy = tf.reduce_mean(-tf.reduce_sum( y_onehot * tf.log(aL+eps) +  (1.0-y_onehot )*tf.log(1.0-aL +eps) , reduction_indices=[1]))
+cost_func = cross_entropy
+
+train_step = tf.train.AdamOptimizer(learning_rate).minimize(cost_func)
+
+##############################################################################
+################################## TRAINING ##################################
+##############################################################################
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
+#sess.run(tf.initialize_all_variables())
+
+### Train using mini-batches for several epochs: ###
+permut = np.arange(N_train)
+for epoch in range(N_epochs):
+    np.random.shuffle(permut) # Randomly shuffle the indices
+    x_shuffled = x_train[permut,:]
+    y_shuffled = y_train[permut]
+
+    #Loop over all the mini-batches:
+    for b in range(0, N_train, minibatch_size):
+        x_batch = x_shuffled[b:b+minibatch_size,:]
+        y_batch = y_shuffled[b:b+minibatch_size]
+        sess.run(train_step, feed_dict={x: x_batch, y:y_batch, keep_prob:dropout_prob})
+
+    #Print results every epoch (can change the argument to the modulus to print less frequently):
+    if epoch % 1 == 0:
+        cost_train = sess.run(cost_func,feed_dict={x:x_train, y:y_train, keep_prob:1.0})
+
+        test_output = sess.run(aL,feed_dict={x:x_test, y:y_test, keep_prob:1.0})
+        predicted_class = np.argmax(test_output, axis=1)
+        accuracy_test = np.mean(predicted_class == y_test)
+
+        print( "Iteration %d:\n  Training cost %f\n  Test accuracy %f\n" % (epoch, cost_train, accuracy_test) )
