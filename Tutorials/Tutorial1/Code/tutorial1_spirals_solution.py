@@ -62,31 +62,31 @@ x = tf.placeholder(tf.float32, [None, 2]) # input data
 y = tf.placeholder(tf.int32,[None])       # labels
 
 ### Layer 1: ###
-W1 = tf.Variable( tf.random_normal([2, K], mean=0.0, stddev=0.01, dtype=tf.float32) )
-b1 = tf.Variable( tf.zeros([K]) )
-z1 = tf.matmul(x, W1) + b1
-a1 = tf.nn.sigmoid( z1 )
-
-### Network output: ###
-aL = a1
-
-############ SOLUTION TO PART C ############
-#nH=4
-#### Layer 1: ###
-#W1 = tf.Variable( tf.random_normal([2, nH], mean=0.0, stddev=0.01, dtype=tf.float32) )
-#b1 = tf.Variable( tf.zeros([nH]) )
+#W1 = tf.Variable( tf.random_normal([2, K], mean=0.0, stddev=0.01, dtype=tf.float32) )
+#b1 = tf.Variable( tf.zeros([K]) )
 #z1 = tf.matmul(x, W1) + b1
 #a1 = tf.nn.sigmoid( z1 )
-##a1 = tf.nn.relu( z1 ) ### SOLUTION TO PART D ###
-#
-#### Layer 2: ###
-#W2 = tf.Variable( tf.random_normal([nH, K], mean=0.0, stddev=0.01, dtype=tf.float32) )
-#b2 = tf.Variable( tf.zeros([K]) )
-#z2 = tf.matmul(a1, W2) + b2
-#a2 = tf.nn.sigmoid( z2 )
 #
 #### Network output: ###
-#aL = a2
+#aL = a1
+
+############ SOLUTION TO PART C ############
+nH=4
+### Layer 1: ###
+W1 = tf.Variable( tf.random_normal([2, nH], mean=0.0, stddev=0.01, dtype=tf.float32) )
+b1 = tf.Variable( tf.zeros([nH]) )
+z1 = tf.matmul(x, W1) + b1
+a1 = tf.nn.sigmoid( z1 )
+#a1 = tf.nn.relu( z1 ) ### SOLUTION TO PART D ###
+
+### Layer 2: ###
+W2 = tf.Variable( tf.random_normal([nH, K], mean=0.0, stddev=0.01, dtype=tf.float32) )
+b2 = tf.Variable( tf.zeros([K]) )
+z2 = tf.matmul(a1, W2) + b2
+a2 = tf.nn.sigmoid( z2 )
+
+### Network output: ###
+aL = a2
 ############################################
 
 ### Cost function: ###

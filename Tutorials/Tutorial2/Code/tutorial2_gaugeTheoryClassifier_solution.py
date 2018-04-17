@@ -5,20 +5,18 @@
 ### The classification does not use machine learning methods and is based on
 ### knowledge of the Hamiltonian and the topological Wilson loop.
 ######################################################################################
-################################# SOLUTION TO PART B #################################
 
 import numpy as np
-import random
 
-### Input parameters: ###
-L = 17           # linear size of the lattice
-N_sites = L**2   # total number of lattice sites
-N_spins = 2*L**2 # total number of spins (one spin on each link)
-J = 1            # coupling parameter
+### Read in the spin configurations: ###
+fileName  = 'gaugeTheoryConfigs.txt'          # The file where the configurations are stored
+configs   = np.loadtxt(fileName,dtype='int8') # Read the data from file
 
-fileName = 'gaugeTheoryConfigs.txt'         # The file where the configurations are stored
-configs = np.loadtxt(fileName,dtype='int8') # Read the data from file
-N_configs = configs.shape[0]
+N_configs = configs.shape[0]                  # Total number of configurations given
+N_spins   = configs.shape[1]                  # Total number of spins per configuration
+N_sites   = N_spins/2                         # Total number of lattice sites
+L         = int(np.sqrt(N_sites))             # Linear size of the lattice
+J         = 1                                 # Coupling parameter
 
 ######################################################################################
 ############################      SOLUTION TO PART A      ############################
@@ -64,12 +62,12 @@ def getPlaquetteProduct(spins,i):
 num_T0_E=0
 ### Loop over all configurations: ###
 for c in range(N_configs):
+    if c%1000==0:
+        print('%d configs. checked' %c)
     E = getEnergy(configs[c])
     if E == (-N_sites*J):
         num_T0_E = num_T0_E + 1
-    if c%1000==0:
-        print(c)
-print( 'num_T0_E = %d' %num_T0_E )
+print( 'Number topologically ordered (from energy) = %d\n' %num_T0_E )
 
 ######################################################################################
 ############################      SOLUTION TO PART B      ############################
@@ -111,11 +109,11 @@ def getAveWy(spins):
 num_T0_W = 0
 ### Loop over all configurations: ###
 for c in range(N_configs):
-    X = getAveWx(configs[c])
-    Y = getAveWy(configs[c])
-    if abs(X) == 1 and abs(Y)==1:
-        num_T0_W = num_T0_W + 1
     if c%1000==0:
-        print(c)
+        print('%d configs. checked' %c)
+    ave_Wx = getAveWx(configs[c])
+    ave_Wy = getAveWy(configs[c])
+    if abs(ave_Wx) == 1 and abs(ave_Wy)==1:
+        num_T0_W = num_T0_W + 1
 
-print( 'num_T0_W = %d' %num_T0_W )
+print( 'Number topologically ordered (from Wx and Wy) = %d\n' %num_T0_W )
