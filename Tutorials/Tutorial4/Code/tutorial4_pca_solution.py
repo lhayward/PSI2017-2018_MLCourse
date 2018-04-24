@@ -1,5 +1,13 @@
+############ PHYS 777: MACHINE LEARNING FOR MANY-BODY PHYSICS, TUTORIAL 4 ############
+### Dataset by Lauren Hayward Sierens
+### Code by Lauren Hayward Sierens and Juan Carrasquilla, with the lines performing
+### PCA taken from Laurens van der Maaten's implementation of t-SNE in Python
+###
+### This code performs principal component analysis (PCA) on spin configurations
+### corresponding to the Ising model or the Ising gauge theory.
+######################################################################################
+
 import numpy as np
-#import pandas as pd
 import matplotlib.pyplot as plt
 
 #Specify font sizes for plots:
@@ -9,13 +17,13 @@ plt.rcParams['xtick.labelsize'] = 10
 plt.rcParams['ytick.labelsize'] = 10
 plt.rcParams['font.size']       = 18
 
-modelName = "gaugeTheory" #can be "Ising" or "gaugeTheory"
+modelName = "Ising" #can be "Ising" or "gaugeTheory"
 
 #Parameters:
 num_components = 2
 
 ### Loop over all lattice sizes: ###
-for L in [20,40,80]:
+for L in [20]:
     print("L=%d"%L)
 
     ### Read in the data from the files: ###
@@ -30,16 +38,23 @@ for L in [20,40,80]:
     (N_configs, N_spins) = X.shape
     X_cent = X - np.tile(np.mean(X, 0), (N_configs, 1))
     (lamb, P) = np.linalg.eig(np.dot(X_cent.T, X_cent))
+
+    ### Sort according to decreasing order of the eigenvalues: ###
+    indices_sorted = lamb.argsort()[::-1] #The [::-1] is to get the reverse order (largest eigenvalues first)
+    lamb = lamb[indices_sorted]
+    P = P[:,indices_sorted]
+
+    ### Get the principal components (columns of the matrix Y): ###
     Y = np.dot(X_cent, P[:,0:num_components])
     
-    ### PLOT FIGURE FOR PART C: ###
+    ### PLOT FIGURE FOR PART C (explained variance ratios): ###
     plt.figure(1)
     ratios = lamb/np.sum(lamb)
-    ratios = np.sort(ratios)[::-1] #The [::-1] is to get the ratios in reverse order (largest first)
     plt.semilogy(np.arange(N_spins), ratios, 'o-', label="L=%d"%L)
 
-    ### PLOT FIGURE FOR PARTS A and B: ###
+    ### PLOT FIGURE FOR PARTS A and B (first two principal components): ###
     plt.figure()
+    plt.axes([0.17, 0.13, 0.81, 0.78]) #specify axes (for figure margins) in the format [xmin, ymin, xwidth, ywidth]
     sc = plt.scatter(Y[:, 0], Y[:, 1], c=labels, s=40, cmap=plt.cm.coolwarm) #PART B
     #plt.scatter(Y[:, 0], Y[:, 1], s=40) #PART A
     plt.title("L=%d"%L)
@@ -48,9 +63,9 @@ for L in [20,40,80]:
     plt.ylabel("y2")
     plt.savefig("y1y2_%s_L%d.pdf" %(modelName,L))
 
-    ### PLOT FIGURE FOR PART D: ###
+    ### PLOT FIGURE FOR PART D (elements of p1): ###
     plt.figure()
-    plt.axes([0.17, 0.13, 0.81, 0.78]) #specify axes (for figure margins) in the format [xmin, ymin, xwidth, ywidth]
+    plt.axes([0.19, 0.13, 0.79, 0.78]) #specify axes (for figure margins) in the format [xmin, ymin, xwidth, ywidth]
     plt.plot(np.arange(N_spins),np.abs(P[:,0]))
     plt.title("L=%d"%L)
     plt.xlabel("Component index")
@@ -65,4 +80,4 @@ plt.ylabel("Explained variance ratio")
 plt.legend()
 plt.savefig("ratios_%s.pdf" %modelName)
 
-#plt.show()
+plt.show()
